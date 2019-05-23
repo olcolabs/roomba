@@ -22,6 +22,7 @@ type (
 		user      string
 		webhook   string
 		client    *http.Client
+		countdown map[string]string
 	}
 
 	// Entry represents a Roomba Slack entity
@@ -38,6 +39,8 @@ type (
 const (
 	// Nickname used for slack messages
 	roombaUser = "Roomba"
+	// Date format for reminders and countdowns
+	layoutISO = "2006-01-02"
 )
 
 // Create a new Slack Service that can talk to and from Slack
@@ -45,14 +48,19 @@ func NewSlackSvc(appConfig config.Config) (SlackSvc, error) {
 	return SlackSvc{
 		webhook:   appConfig.Webhook,
 		repos:     appConfig.Repos,
+		countdown: appConfig.Countdown,
 		channelID: appConfig.ChannelID,
 		user:      roombaUser,
 		client:    &http.Client{},
 	}, nil
 }
 
-// Parse, filter and report github results into slack channel
+// Parse, filter and report results into slack channel
 func (s *SlackSvc) Report(results []Record) error {
+	// first check for messages/countdown/reminders from config
+	// TODO: wg.add()
+	reminders := s.GetMessages()
+
 	relevant := make([]*Entry, 0)
 	// filter relevant Pull Requests
 	for _, v := range results {
@@ -80,16 +88,16 @@ func (s *SlackSvc) Report(results []Record) error {
 	})
 
 	// Create Report
-	msg := make([]string, 0)
+	prs := make([]string, 0)
 	for _, entry := range relevant {
 		line := entry.ToString()
 		if len(line) > 0 {
-			msg = append(msg, line)
+			prs = append(prs, line)
 		}
 	}
 
-	log.Debug().Msgf("%+v", msg)
-	err := s.SendMessage(msg)
+	log.Debug().Msgf("%+v", prs)
+	err := s.SendMessage(reminders, prs)
 	if err != nil {
 		return err
 	}
@@ -97,12 +105,37 @@ func (s *SlackSvc) Report(results []Record) error {
 	return nil
 }
 
+func (s *SlackSvc) GetMessages() []string {
+	msgs := make([]string, 0)
+	if len(s.Countdown) < 1 {
+		return msgs
+	}
+	// append countdowns in the future
+	for k, v := range s.Countdown {
+		d, err := time.Parse(layoutISO, s.Countdown)
+		if err != nil {
+			continue
+		}
+		daysUntil := d.Sub(time.Now()).Hours() / 24
+		if daysUntil > 0 {
+			msgs = append(msgs, fmt.Sprintf("%s is *%d* days away!", v, daysUntil))
+		}
+	}
+
+}
+
 // Send individual slack message to configured slack channel
-func (s *SlackSvc) SendMessage(contents []string) error {
+func (s *SlackSvc) SendMessage(reminders, prs []string) error {
 	attachments := make([]map[string]interface{}, 1)
-	attachments[0] = map[string]interface{}{"text": fmt.Sprintf("Howdy! Here's a list of *%d* PRs waiting to be reviewed and merged:", len(contents))}
-	for _, v := range contents {
+	attachments[0] = map[string]interface{}{"text": fmt.Sprintf("Howdy! Here's a list of *%d* PRs waiting to be reviewed and merged:", len(prs))}
+	for _, v := range prs {
 		attachments = append(attachments, map[string]interface{}{"text": v})
+	}
+
+	if len(reminders) > 0 {
+		for _, v := range reminders {
+			attachments = append(attachments, map[string]interface{}{"text": v})
+		}
 	}
 
 	message := map[string]interface{}{
