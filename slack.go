@@ -107,21 +107,22 @@ func (s *SlackSvc) Report(results []Record) error {
 
 func (s *SlackSvc) GetMessages() []string {
 	msgs := make([]string, 0)
-	if len(s.Countdown) < 1 {
+	if len(s.countdown) < 1 {
 		return msgs
 	}
 	// append countdowns in the future
-	for k, v := range s.Countdown {
-		d, err := time.Parse(layoutISO, s.Countdown)
+	for k, v := range s.countdown {
+		d, err := time.Parse(layoutISO, k)
 		if err != nil {
 			continue
 		}
 		daysUntil := d.Sub(time.Now()).Hours() / 24
 		if daysUntil > 0 {
-			msgs = append(msgs, fmt.Sprintf("%s is *%d* days away!", v, daysUntil))
+			msgs = append(msgs, fmt.Sprintf("%s is *%f* days away!", v, daysUntil))
 		}
 	}
 
+	return msgs
 }
 
 // Send individual slack message to configured slack channel
