@@ -83,9 +83,11 @@ func TestGetMessages(t *testing.T) {
 	})
 
 	d, _ := time.Parse(layoutISO, future)
-	expectedDays := d.Sub(time.Now()).Hours() / 24
+	expectedDays := int64(d.Sub(time.Now()).Hours() / 24)
 	res := s.GetMessages()
 	assert.Equal(t, 1, len(res))
-	assert.True(t, strings.Contains(res[0], fmt.Sprintf("%f", expectedDays)))
+	println(res[0])
+	assert.True(t, strings.Contains(res[0], fmt.Sprintf("%d", expectedDays)))
+	assert.True(t, strings.Contains(res[0], "This project shohuld be dead"))
 
 }
