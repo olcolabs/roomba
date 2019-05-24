@@ -86,8 +86,17 @@ func TestGetMessages(t *testing.T) {
 	expectedDays := int64(d.Sub(time.Now()).Hours() / 24)
 	res := s.GetMessages()
 	assert.Equal(t, 1, len(res))
-	println(res[0])
 	assert.True(t, strings.Contains(res[0], fmt.Sprintf("%d", expectedDays)))
 	assert.True(t, strings.Contains(res[0], "This project shohuld be dead"))
 
+	past := "1999-01-05"
+	s, _ = NewSlackSvc(config.Config{
+		Countdown: map[string]string{
+			past: "This shouldn't be displayed",
+		},
+	})
+
+	d, _ = time.Parse(layoutISO, past)
+	res = s.GetMessages()
+	assert.Equal(t, 0, len(res))
 }
