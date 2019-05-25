@@ -105,6 +105,7 @@ func (s *SlackSvc) Report(results []Record) error {
 	return nil
 }
 
+// GetMessages return active countdowns in a report friendly format
 func (s *SlackSvc) GetMessages() []string {
 	msgs := make([]string, 0)
 	if len(s.countdown) < 1 {
