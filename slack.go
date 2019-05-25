@@ -117,7 +117,7 @@ func (s *SlackSvc) GetMessages() []string {
 		if err != nil {
 			continue
 		}
-		daysUntil := int64(d.Sub(time.Now()).Hours() / 24)
+		daysUntil := int64(time.Until(d).Hours() / 24)
 		if daysUntil > 0 {
 			msgs = append(msgs, fmt.Sprintf("%s is *%d* days away!", v, daysUntil))
 		}

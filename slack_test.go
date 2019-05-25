@@ -83,7 +83,7 @@ func TestGetMessages(t *testing.T) {
 	})
 
 	d, _ := time.Parse(layoutISO, future)
-	expectedDays := int64(d.Sub(time.Now()).Hours() / 24)
+	expectedDays := int64(time.Until(d).Hours() / 24)
 	res := s.GetMessages()
 	assert.Equal(t, 1, len(res))
 	assert.True(t, strings.Contains(res[0], fmt.Sprintf("%d", expectedDays)))
@@ -96,7 +96,6 @@ func TestGetMessages(t *testing.T) {
 		},
 	})
 
-	d, _ = time.Parse(layoutISO, past)
 	res = s.GetMessages()
 	assert.Equal(t, 0, len(res))
 }
