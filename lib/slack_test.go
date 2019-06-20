@@ -68,7 +68,19 @@ func TestSendMessage(t *testing.T) {
 		client:    &http.Client{},
 	}
 
-	err := s.SendMessage([]string{"boom!"}, []string{})
+	fakeReport := ReportPayload{
+		ChannelID: "123",
+		Datetime:  time.Now(),
+		PRs: []Entry{
+			Entry{
+				Title:     "boom!",
+				Author:    "bigo",
+				Permalink: "http://www.example.com",
+			},
+		},
+	}
+
+	err := s.SendMessage(fakeReport)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -86,8 +98,8 @@ func TestGetMessages(t *testing.T) {
 	expectedDays := int64(time.Until(d).Hours() / 24)
 	res := s.GetMessages()
 	assert.Equal(t, 1, len(res))
-	assert.True(t, strings.Contains(res[0], fmt.Sprintf("%d", expectedDays)))
-	assert.True(t, strings.Contains(res[0], "This project shohuld be dead"))
+	assert.True(t, strings.Contains(res[0].Text, fmt.Sprintf("%d", expectedDays)))
+	assert.True(t, strings.Contains(res[0].Text, "This project shohuld be dead"))
 
 	past := "1999-01-05"
 	s, _ = NewSlackSvc(config.Config{
