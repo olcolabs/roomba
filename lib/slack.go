@@ -17,12 +17,13 @@ import (
 type (
 	// SlackSvc is the Slack service layer
 	SlackSvc struct {
-		channelID string
-		repos     map[string]bool
-		user      string
-		webhook   string
-		client    *http.Client
-		countdown map[string]string
+		channelID      string
+		repos          map[string]bool
+		user           string
+		webhook        string
+		client         *http.Client
+		countdown      map[string]string
+		reportCallback string
 	}
 
 	// Entry represents a Roomba Slack entity
@@ -46,12 +47,13 @@ const (
 // Create a new Slack Service that can talk to and from Slack
 func NewSlackSvc(appConfig config.Config) (SlackSvc, error) {
 	return SlackSvc{
-		webhook:   appConfig.Webhook,
-		repos:     appConfig.Repos,
-		countdown: appConfig.Countdown,
-		channelID: appConfig.ChannelID,
-		user:      roombaUser,
-		client:    &http.Client{},
+		webhook:        appConfig.Webhook,
+		repos:          appConfig.Repos,
+		countdown:      appConfig.Countdown,
+		channelID:      appConfig.ChannelID,
+		reportCallback: appConfig.ReportCallback,
+		user:           roombaUser,
+		client:         &http.Client{},
 	}, nil
 }
 
@@ -100,6 +102,12 @@ func (s *SlackSvc) Report(results []Record) error {
 		return err
 	}
 
+	if len(s.reportCallback) > 0 {
+		err = s.ReportCallback(report)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -139,6 +147,23 @@ func (s *SlackSvc) SendMessage(report ReportPayload) error {
 	resp.Body.Close()
 
 	log.Info().Msgf("Message successfully sent to channel %s", s.channelID)
+	return nil
+}
+
+func (s *SlackSvc) ReportCallback(report ReportPayload) error {
+	payload, err := json.Marshal(report)
+	if err != nil {
+		log.Error().Err(err).Msg("Failed to serialize callback payload")
+		return err
+	}
+
+	resp, err := s.client.Post(s.reportCallback, "application/json", bytes.NewReader(payload))
+	if err != nil {
+		log.Error().Err(err).Msgf("Failed to post payload to callback endpoint")
+	}
+	resp.Body.Close()
+
+	log.Info().Str("callback_url", s.reportCallback).Msgf("Report callback sent")
 	return nil
 }
 
