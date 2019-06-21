@@ -86,6 +86,51 @@ func TestSendMessage(t *testing.T) {
 	}
 }
 
+func TestReportCallback(t *testing.T) {
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		if r.Method != "POST" {
+			t.Errorf("Expected POST")
+		}
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Error(err)
+		}
+
+		var req ReportPayload
+		if err = json.Unmarshal(body, &req); err != nil {
+			t.Error(err)
+		}
+
+		assert.Equal(t, "000ABC", req.ChannelID)
+
+	}))
+
+	s := SlackSvc{
+		channelID:      "000ABC",
+		user:           "Roomba",
+		reportCallback: testServer.URL,
+		client:         &http.Client{},
+	}
+
+	fakeReport := ReportPayload{
+		ChannelID: "000ABC",
+		Datetime:  time.Now(),
+		PRs: []Entry{
+			Entry{
+				Title:     "boom!",
+				Author:    "bigo",
+				Permalink: "http://www.example.com",
+			},
+		},
+	}
+
+	err := s.ReportCallback(fakeReport)
+	if err != nil {
+		t.Error(err.Error())
+	}
+}
+
 func TestGetMessages(t *testing.T) {
 	future := "2039-01-02"
 	s, _ := NewSlackSvc(config.Config{

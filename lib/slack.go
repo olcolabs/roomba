@@ -144,7 +144,7 @@ func (s *SlackSvc) SendMessage(report ReportPayload) error {
 		return err
 	}
 
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	log.Info().Msgf("Message successfully sent to channel %s", s.channelID)
 	return nil
@@ -161,7 +161,7 @@ func (s *SlackSvc) ReportCallback(report ReportPayload) error {
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to post payload to callback endpoint")
 	}
-	resp.Body.Close()
+	defer resp.Body.Close()
 
 	log.Info().Str("callback_url", s.reportCallback).Msgf("Report callback sent")
 	return nil
