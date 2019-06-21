@@ -71,8 +71,8 @@ func TestSendMessage(t *testing.T) {
 	fakeReport := ReportPayload{
 		ChannelID: "123",
 		Datetime:  time.Now(),
-		PRs: []Entry{
-			Entry{
+		PRs: []PullRequest{
+			PullRequest{
 				Title:     "boom!",
 				Author:    "bigo",
 				Permalink: "http://www.example.com",
@@ -116,8 +116,8 @@ func TestReportCallback(t *testing.T) {
 	fakeReport := ReportPayload{
 		ChannelID: "000ABC",
 		Datetime:  time.Now(),
-		PRs: []Entry{
-			Entry{
+		PRs: []PullRequest{
+			PullRequest{
 				Title:     "boom!",
 				Author:    "bigo",
 				Permalink: "http://www.example.com",

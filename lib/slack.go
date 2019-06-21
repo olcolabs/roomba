@@ -3,13 +3,13 @@ package roomba
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 
 	"go4.org/sort"
 
-	humanize "github.com/dustin/go-humanize"
 	"github.com/olcolabs/roomba/config"
 	"github.com/rs/zerolog/log"
 )
@@ -24,16 +24,6 @@ type (
 		client         *http.Client
 		countdown      map[string]string
 		reportCallback string
-	}
-
-	// Entry represents a Roomba Slack entity
-	Entry struct {
-		Repository string
-		Author     string
-		UpdatedAt  time.Time
-		Labels     string
-		Title      string
-		Permalink  string
 	}
 )
 
@@ -63,7 +53,7 @@ func (s *SlackSvc) Report(results []Record) error {
 	// TODO: wg.add()
 	reminders := s.GetMessages()
 
-	relevant := make([]Entry, 0)
+	relevant := make([]PullRequest, 0)
 	// filter relevant Pull Requests
 	for _, v := range results {
 		pr := v.Node.PullRequest
@@ -74,7 +64,7 @@ func (s *SlackSvc) Report(results []Record) error {
 		}
 		// create and add a report entry
 		l := PrintableLabels(pr.Labels)
-		relevant = append(relevant, Entry{
+		relevant = append(relevant, PullRequest{
 			Title:      pr.Title,
 			Author:     pr.Author.Login,
 			Permalink:  pr.Permalink,
@@ -160,6 +150,7 @@ func (s *SlackSvc) ReportCallback(report ReportPayload) error {
 	resp, err := s.client.Post(s.reportCallback, "application/json", bytes.NewReader(payload))
 	if err != nil {
 		log.Error().Err(err).Msgf("Failed to post payload to callback endpoint")
+		return errors.New("Failed to post")
 	}
 	defer resp.Body.Close()
 
@@ -189,10 +180,4 @@ func (s *SlackSvc) GetMessages() []Reminder {
 	}
 
 	return msgs
-}
-
-// Printable format of an Entry
-func (e *Entry) ToString() string {
-	age := humanize.Time(e.UpdatedAt)
-	return fmt.Sprintf("*%s* | %s | %s\n\t [%s] \"<%s|%s>\"", e.Repository, e.Author, age, e.Labels, e.Permalink, e.Title)
 }
